@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import auth, routes, schedules, users, gps, map
+from app.bot import start_bot
+import asyncio
 
 app = FastAPI(title="Passenger Transport System")
 
@@ -26,3 +28,7 @@ app.include_router(schedules.router, prefix="/api/v1/schedules", tags=["Schedule
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(gps.router, prefix="/api/v1/gps", tags=["GPS"])
 app.include_router(map.router, prefix="/api/v1/map", tags=["Map"])
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(start_bot())

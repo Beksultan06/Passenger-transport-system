@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  web:
+    volumes:
+      - .:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  bot:
+    volumes:
+      - .:/app
+    command: python app/bot.py
