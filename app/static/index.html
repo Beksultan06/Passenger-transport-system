@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>GPS Трекинг на карте</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h3>Отображение маршрутов и GPS в реальном времени</h3>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([42.8746, 74.5698], 12); // Бишкек по умолчанию
+
+        // Добавляем OpenStreetMap слой
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Хранение маркеров водителей
+        let driverMarkers = {};
+
+        // Функция обновления позиции водителя
+        function updateDriverPosition(driver_id, latitude, longitude) {
+            if (driverMarkers[driver_id]) {
+                driverMarkers[driver_id].setLatLng([latitude, longitude]);
+            } else {
+                driverMarkers[driver_id] = L.marker([latitude, longitude]).addTo(map)
+                    .bindPopup(`Водитель ${driver_id}`);
+            }
+        }
+
+        // Подключение к WebSocket
+        const driverId = 1;  // ID водителя (может быть динамическим)
+        const ws = new WebSocket(`ws://127.0.0.1:8000/api/v1/gps/ws/gps/${driverId}`);
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const { driver_id, latitude, longitude } = data;
+            updateDriverPosition(driver_id, latitude, longitude);
+        };
+
+        ws.onerror = function(event) {
+            console.error("Ошибка WebSocket:", event);
+        };
+    </script>
+</body>
+</html>
