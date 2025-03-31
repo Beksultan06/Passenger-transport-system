@@ -1,58 +1,14 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from sqlalchemy.orm import Session
-from app.db.database import SessionLocal
-from app.db.models.location import Location
-from datetime import datetime
+from app.services.notification import connect_client, disconnect_client, send_notification
 
 router = APIRouter()
 
-# Хранилище активных подключений WebSocket
-connected_clients = {}
-
-
-# Получение сессии БД
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-# Получение данных о GPS через WebSocket
-@router.websocket("/ws/gps/{driver_id}")
-async def websocket_gps_endpoint(websocket: WebSocket, driver_id: int):
-    await websocket.accept()
-    connected_clients[driver_id] = websocket
+# Подключение WebSocket для водителей и диспетчеров
+@router.websocket("/ws/notifications/{user_id}")
+async def websocket_notifications(websocket: WebSocket, user_id: int):
+    await connect_client(websocket, user_id)
     try:
         while True:
-            data = await websocket.receive_json()
-            latitude = data.get("latitude")
-            longitude = data.get("longitude")
-
-            if latitude and longitude:
-                save_driver_location(driver_id, latitude, longitude)
-                await broadcast_location(driver_id, latitude, longitude)
-
+            await websocket.receive_text()
     except WebSocketDisconnect:
-        del connected_clients[driver_id]
-
-
-# Сохранение координат водителя в БД
-def save_driver_location(driver_id: int, latitude: float, longitude: float, db: Session = next(get_db())):
-    location = Location(
-        driver_id=driver_id,
-        latitude=latitude,
-        longitude=longitude,
-        timestamp=datetime.utcnow(),
-    )
-    db.add(location)
-    db.commit()
-
-
-# Рассылка координат всем клиентам
-async def broadcast_location(driver_id: int, latitude: float, longitude: float):
-    for client in connected_clients.values():
-        await client.send_json(
-            {"driver_id": driver_id, "latitude": latitude, "longitude": longitude}
-        )
+        disconnect_client(user_id)
