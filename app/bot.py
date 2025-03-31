@@ -1,7 +1,6 @@
 import asyncio
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import ParseMode
-from aiogram.utils import executor
+from aiogram.enums import ParseMode
 from app.core.config import settings
 from app.db.database import SessionLocal
 from app.db.models.schedule import Schedule
@@ -95,8 +94,10 @@ async def error_handler(update, exception):
     print(f"Ошибка: {exception}")
     return True
 
+async def main():
+    await dp.start_polling(bot)
 
 # Запуск бота
 async def start_bot():
     loop = asyncio.get_event_loop()
-    loop.create_task(executor.start_polling(dp, skip_updates=True))
+    loop.create_task(main())
